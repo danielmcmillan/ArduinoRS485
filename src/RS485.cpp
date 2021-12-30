@@ -19,64 +19,60 @@
 
 #include "RS485.h"
 
-RS485Class::RS485Class(HardwareSerial& hwSerial, int txPin, int dePin, int rePin) :
-  _serial(&hwSerial),
-  _txPin(txPin),
-  _dePin(dePin),
-  _rePin(rePin),
-  _transmisionBegun(false)
+RS485Class::RS485Class(Stream &stream, int txPin, int dePin, int rePin) : _stream(&stream),
+                                                                          _txPin(txPin),
+                                                                          _dePin(dePin),
+                                                                          _rePin(rePin),
+                                                                          _transmissionBegun(false)
 {
 }
 
-void RS485Class::begin(unsigned long baudrate)
+void RS485Class::begin(unsigned long _baudrate)
 {
-  begin(baudrate, SERIAL_8N1, RS485_DEFAULT_PRE_DELAY, RS485_DEFAULT_POST_DELAY);
+  begin(0, 0, RS485_DEFAULT_PRE_DELAY, RS485_DEFAULT_POST_DELAY);
 }
 
-void RS485Class::begin(unsigned long baudrate, int predelay, int postdelay)
+void RS485Class::begin(unsigned long _baudrate, int predelay, int postdelay)
 {
-  begin(baudrate, SERIAL_8N1, predelay, postdelay);
+  begin(0, 0, predelay, postdelay);
 }
 
-void RS485Class::begin(unsigned long baudrate, uint16_t config)
+void RS485Class::begin(unsigned long _baudrate, uint16_t _config)
 {
-  begin(baudrate, config, RS485_DEFAULT_PRE_DELAY, RS485_DEFAULT_POST_DELAY);
+  begin(0, 0, RS485_DEFAULT_PRE_DELAY, RS485_DEFAULT_POST_DELAY);
 }
 
-void RS485Class::begin(unsigned long baudrate, uint16_t config, int predelay, int postdelay)
+void RS485Class::begin(unsigned long _baudrate, uint16_t _config, int predelay, int postdelay)
 {
-  _baudrate = baudrate;
-  _config = config;
-
   // Set only if not already initialized with ::setDelays
   _predelay = _predelay == 0 ? predelay : _predelay;
   _postdelay = _postdelay == 0 ? postdelay : _postdelay;
 
-  if (_dePin > -1) {
+  if (_dePin > -1)
+  {
     pinMode(_dePin, OUTPUT);
     digitalWrite(_dePin, LOW);
   }
 
-  if (_rePin > -1) {
+  if (_rePin > -1)
+  {
     pinMode(_rePin, OUTPUT);
     digitalWrite(_rePin, HIGH);
   }
 
-  _transmisionBegun = false;
-
-  _serial->begin(baudrate, config);
+  _transmissionBegun = false;
 }
 
 void RS485Class::end()
 {
-  _serial->end();
-
-  if (_rePin > -1) {
+  if (_rePin > -1)
+  {
     digitalWrite(_rePin, LOW);
     pinMode(_dePin, INPUT);
   }
-  
-  if (_dePin > -1) {
+
+  if (_dePin > -1)
+  {
     digitalWrite(_dePin, LOW);
     pinMode(_rePin, INPUT);
   }
@@ -84,32 +80,33 @@ void RS485Class::end()
 
 int RS485Class::available()
 {
-  return _serial->available();
+  return _stream->available();
 }
 
 int RS485Class::peek()
 {
-  return _serial->peek();
+  return _stream->peek();
 }
 
 int RS485Class::read(void)
 {
-  return _serial->read();
+  return _stream->read();
 }
 
 void RS485Class::flush()
 {
-  return _serial->flush();
+  return _stream->flush();
 }
 
 size_t RS485Class::write(uint8_t b)
 {
-  if (!_transmisionBegun) {
+  if (!_transmissionBegun)
+  {
     setWriteError();
     return 0;
   }
 
-  return _serial->write(b);
+  return _stream->write(b);
 }
 
 RS485Class::operator bool()
@@ -119,58 +116,60 @@ RS485Class::operator bool()
 
 void RS485Class::beginTransmission()
 {
-  if (_dePin > -1) {
+  if (_dePin > -1)
+  {
     digitalWrite(_dePin, HIGH);
-    if (_predelay) delayMicroseconds(_predelay);
+    if (_predelay)
+      delayMicroseconds(_predelay);
   }
 
-  _transmisionBegun = true;
+  _transmissionBegun = true;
 }
 
 void RS485Class::endTransmission()
 {
-  _serial->flush();
+  _stream->flush();
 
-  if (_dePin > -1) {
-    if (_postdelay) delayMicroseconds(_postdelay);
+  if (_dePin > -1)
+  {
+    if (_postdelay)
+      delayMicroseconds(_postdelay);
     digitalWrite(_dePin, LOW);
   }
 
-  _transmisionBegun = false;
+  _transmissionBegun = false;
 }
 
 void RS485Class::receive()
 {
-  if (_rePin > -1) {
+  if (_rePin > -1)
+  {
     digitalWrite(_rePin, LOW);
   }
 }
 
 void RS485Class::noReceive()
 {
-  if (_rePin > -1) {
+  if (_rePin > -1)
+  {
     digitalWrite(_rePin, HIGH);
   }
 }
 
 void RS485Class::sendBreak(unsigned int duration)
 {
-  _serial->flush();
-  _serial->end();
+  _stream->flush();
   pinMode(_txPin, OUTPUT);
   digitalWrite(_txPin, LOW);
   delay(duration);
-  _serial->begin(_baudrate, _config);
 }
 
 void RS485Class::sendBreakMicroseconds(unsigned int duration)
 {
-  _serial->flush();
-  _serial->end();
+  _stream->flush();
   pinMode(_txPin, OUTPUT);
   digitalWrite(_txPin, LOW);
   delayMicroseconds(duration);
-  _serial->begin(_baudrate, _config);
 }
 
 void RS485Class::setPins(int txPin, int dePin, int rePin)
@@ -185,5 +184,3 @@ void RS485Class::setDelays(int predelay, int postdelay)
   _predelay = predelay;
   _postdelay = postdelay;
 }
-
-RS485Class RS485(SERIAL_PORT_HARDWARE, RS485_DEFAULT_TX_PIN, RS485_DEFAULT_DE_PIN, RS485_DEFAULT_RE_PIN);
